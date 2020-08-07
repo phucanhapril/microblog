@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.html": "jinja-html"
+    },
+    "prettier.tabWidth": 4,
+    "python.pythonPath": "venv/bin/python"
+}
