@@ -3,5 +3,10 @@
         "*.html": "jinja-html"
     },
     "prettier.tabWidth": 4,
+    "python.linting.pylintArgs": [
+        "--load-plugins",
+        "pylint_flask_sqlalchemy",
+        "--disable=missing-module-docstring,missing-class-docstring,missing-function-docstring"
+    ],
     "python.pythonPath": "venv/bin/python"
 }
