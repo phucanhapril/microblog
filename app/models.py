@@ -1,14 +1,33 @@
+# pylint: disable=no-member
+
 from datetime import datetime
+from hashlib import md5
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, login
+
+follows = db.Table(
+    'follows',
+    db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id')),
+)
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
     pw_hash = db.Column(db.String(128))
+    about_me = db.Column(db.String(140))
+    following = db.relationship(
+        'User',
+        secondary=follows,
+        primaryjoin=(follows.c.follower_id == id),
+        secondaryjoin=(follows.c.followed_id == id),
+        backref=db.backref('followers', lazy='dynamic'),
+        lazy='dynamic'
+    )
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __repr__(self):
@@ -20,9 +39,35 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.pw_hash, password)
 
+    def avatar(self, size):
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(digest, size)
+
+    def is_following(self, user):
+        return self.following.filter(
+            follows.c.followed_id == user.id
+        ).count() > 0
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.following.append(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.following.remove(user)
+
+    def following_posts(self):
+        following = Post.query.join(
+            follows,
+            follows.c.followed_id == Post.user_id
+        ).filter(follows.c.follower_id == self.id)
+        own = Post.query.filter_by(user_id=self.id)
+        return following.union(own).order_by(Post.timestamp.desc())
+
 @login.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
