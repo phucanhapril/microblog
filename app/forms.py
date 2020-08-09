@@ -30,6 +30,18 @@ class RegistrationForm(FlaskForm):
         if user is not None:
             raise ValidationError('this email is already registered')
 
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('password', validators=[DataRequired()])
+    password_confirm = PasswordField(
+        'confirm password',
+        validators=[DataRequired(), EqualTo('password')]
+    )
+    submit = SubmitField('reset')
+
+class ResetPasswordRequestForm(FlaskForm):
+    email = StringField('email', validators=[DataRequired(), Email()])
+    submit = SubmitField('request password reset')
+
 class EditProfileForm(FlaskForm):
     username = StringField('username', validators=[DataRequired()])
     about_me = TextAreaField('bio', validators=[Length(min=0, max=140)])

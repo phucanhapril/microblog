@@ -4,7 +4,9 @@ from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.urls import url_parse
 
 from app import app, db
-from app.forms import EditProfileForm, EmptyForm, LoginForm, PostForm, RegistrationForm
+from app.email import send_password_reset_email
+from app.forms import EditProfileForm, EmptyForm, LoginForm, PostForm, \
+    RegistrationForm, ResetPasswordForm, ResetPasswordRequestForm
 from app.models import Post, User
 
 @app.before_request
@@ -34,13 +36,14 @@ def index():
         if posts.has_next else None
     prev_url = url_for('index', page=posts.prev_num) \
         if posts.has_prev else None
+    # pylint: disable=bad-continuation
     return render_template('index.html',
         title='home',
         form=form,
         posts=posts.items,
         next_url=next_url,
-        prev_url=prev_url
-    )
+        prev_url=prev_url)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -78,6 +81,40 @@ def register():
         flash("you're in")
         return redirect(url_for('login'))
     return render_template('register.html', title='join', form=form)
+
+
+@app.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = ResetPasswordRequestForm()
+    if form.validate_on_submit():
+        _user = User.query.filter_by(email=form.email.data).first()
+        if _user:
+            send_password_reset_email(user)
+        flash("if ur legit, you'll receive a reset link in your inbox")
+        return redirect(url_for('login'))
+    return render_template(
+        'reset_pw_request.html',
+        title='reset password',
+        form=form
+    )
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    _user = User.verify_reset_password_token(token) # this is weird naming?
+    if not _user:
+        return redirect(url_for('index'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        _user.set_password(form.password.data)
+        db.session.commit()
+        flash('your password has been reset')
+        return redirect(url_for('login'))
+    return render_template('reset_pw.html', form=form)
+
 
 @app.route('/user/<username>')
 @login_required
@@ -156,6 +193,7 @@ def edit_profile():
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title="edit profile", form=form)
+
 
 @app.route('/explore')
 @login_required
