@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <table>
+  <table style="margin-bottom: 16px;">
     <tr valign="top">
       <td><img src="{{ user.avatar(128) }}"></td>
       <td>
-        <h1>{{ user.username }}</h1>
+        <h1 style="margin: 0;">{{ user.username }}</h1>
         {% if user.about_me %}
-          <p>{{ user.about_me }}</p>
+          <p style="margin: 0;">{{ user.about_me }}</p>
         {% endif %}
-        {% if user.last_seen %}
-          <p>last seen {{ user.last_seen }}</p>
-        {% endif %}
-        <p>
+        <p style="margin: 0;">
           {{ user.followers.count() }} followers | 
           {{ user.following.count() }} following
+        </p>
+        <p style="margin: 0;">
+          last seen {{ moment(user.last_seen).format('LLL') }}
         </p>
         {% if user == current_user %}
           <p><a href="{{ url_for('edit_profile') }}">edit profile</a></p>

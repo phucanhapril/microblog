@@ -5,10 +5,13 @@
     {% else %}
       <title>welcome to microblog</title>
     {% endif %}
+
+    {{ moment.include_jquery() }}
+    {{ moment.include_moment() }}
   </head>
 
   <body>
-    <div>
+    <div style="margin-bottom: 16px;">
       microblog:
       <a href="{{ url_for('index') }}">home</a>
       {% if current_user.is_anonymous %}
