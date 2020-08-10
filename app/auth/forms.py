@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, PasswordField, StringField, SubmitField, TextAreaField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+from wtforms import BooleanField, PasswordField, StringField, SubmitField
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 
 from app.models import User
 
@@ -30,6 +30,10 @@ class RegistrationForm(FlaskForm):
         if user is not None:
             raise ValidationError('this email is already registered')
 
+class ResetPasswordRequestForm(FlaskForm):
+    email = StringField('email', validators=[DataRequired(), Email()])
+    submit = SubmitField('request password reset')
+
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('password', validators=[DataRequired()])
     password_confirm = PasswordField(
@@ -37,32 +41,3 @@ class ResetPasswordForm(FlaskForm):
         validators=[DataRequired(), EqualTo('password')]
     )
     submit = SubmitField('reset')
-
-class ResetPasswordRequestForm(FlaskForm):
-    email = StringField('email', validators=[DataRequired(), Email()])
-    submit = SubmitField('request password reset')
-
-class EditProfileForm(FlaskForm):
-    username = StringField('username', validators=[DataRequired()])
-    about_me = TextAreaField('bio', validators=[Length(min=0, max=140)])
-    submit = SubmitField('save')
-
-    def __init__(self, original_username, *args, **kwargs):
-        super(EditProfileForm, self).__init__(*args, **kwargs)
-        self.original_username = original_username
-
-    def validate_username(self, username):
-        if username.data != self.original_username:
-            user = User.query.filter_by(username=self.username.data).first()
-            if user is not None:
-                raise ValidationError('ur gonna need a more unique username')
-
-class EmptyForm(FlaskForm):
-    submit = SubmitField('save')
-
-class PostForm(FlaskForm):
-    post = TextAreaField(
-        'scream into the abyss',
-        validators=[DataRequired(), Length(min=1, max=140)]
-    )
-    submit = SubmitField('post')

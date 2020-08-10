@@ -1,19 +1,28 @@
+#!/usr/bin/env python
 # pylint: disable=invalid-name
 
 from datetime import datetime, timedelta
 import unittest
 
-from app import app, db
+from app import create_app, db
 from app.models import User, Post
+from config import Config
+
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 class UserModelCase(unittest.TestCase):
     def setUp(self):
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
         db.create_all()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+        self.app_context.pop()
 
     def test_password_hashing(self):
         u = User(username='susan')
@@ -35,21 +44,21 @@ class UserModelCase(unittest.TestCase):
         db.session.add(u1)
         db.session.add(u2)
         db.session.commit()
-        self.assertEqual(u1.followed.all(), [])
+        self.assertEqual(u1.following.all(), [])
         self.assertEqual(u1.followers.all(), [])
 
         u1.follow(u2)
         db.session.commit()
         self.assertTrue(u1.is_following(u2))
-        self.assertEqual(u1.followed.count(), 1)
-        self.assertEqual(u1.followed.first().username, 'susan')
+        self.assertEqual(u1.following.count(), 1)
+        self.assertEqual(u1.following.first().username, 'susan')
         self.assertEqual(u2.followers.count(), 1)
         self.assertEqual(u2.followers.first().username, 'john')
 
         u1.unfollow(u2)
         db.session.commit()
         self.assertFalse(u1.is_following(u2))
-        self.assertEqual(u1.followed.count(), 0)
+        self.assertEqual(u1.following.count(), 0)
         self.assertEqual(u2.followers.count(), 0)
 
     def test_follow_posts(self):
@@ -81,10 +90,10 @@ class UserModelCase(unittest.TestCase):
         db.session.commit()
 
         # check the followed posts of each user
-        f1 = u1.followed_posts().all()
-        f2 = u2.followed_posts().all()
-        f3 = u3.followed_posts().all()
-        f4 = u4.followed_posts().all()
+        f1 = u1.following_posts().all()
+        f2 = u2.following_posts().all()
+        f3 = u3.following_posts().all()
+        f4 = u4.following_posts().all()
         self.assertEqual(f1, [p2, p4, p1])
         self.assertEqual(f2, [p2, p3])
         self.assertEqual(f3, [p3, p4])
